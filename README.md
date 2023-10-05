@@ -8,4 +8,5 @@ commit-pkg <options>
 ```
 
 # Options
+
 `--gpg-tty` - use `tty` for signing commit with gpg.

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import simpleGit from 'simple-git';

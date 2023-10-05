@@ -3,7 +3,7 @@
 
 [ -f '.git/commit-safe' ] || {
   echo '[ERROR] Please, use the following command for committing:'
-  echo '$ node git-commit <options>'
+  echo '$ node bin <options>'
   exit 1
 }
 
