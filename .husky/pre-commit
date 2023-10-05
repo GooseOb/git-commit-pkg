@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+[ -f '.git/commit-safe' ] || {
+  echo '[ERROR] Please, use the following command for committing:'
+  echo '$ node git-commit <options>'
+  exit 1
+}
+
+prettier --write .
+git add -A .

@@ -1,0 +1,31 @@
+{
+	"name": "git-commit-pkg",
+	"author": "GooseOb",
+	"license": "MIT",
+	"version": "1.0.0",
+	"private": false,
+	"type": "module",
+	"bin": {
+		"commit-pkg": "./bin.js"
+	},
+	"files": [
+		"bin.js",
+		"README.md"
+	],
+	"scripts": {
+		"prepare": "husky install"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/GooseOb/git-commit-pkg.git"
+	},
+	"description": "Канвэртацыя акадэмічнага правапісу ў клясычны",
+	"dependencies": {
+		"simple-git": "^3.20.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.8.2",
+		"husky": "^8.0.3",
+		"prettier": "^3.0.3"
+	}
+}

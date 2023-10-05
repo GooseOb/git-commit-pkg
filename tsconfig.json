@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"moduleResolution": "node",
+		"isolatedModules": true,
+		"noEmit": true,
+
+		"strict": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
+		"strictBindCallApply": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictPropertyInitialization": true,
+		"types": ["bun-types"]
+	}
+}
