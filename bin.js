@@ -59,7 +59,7 @@ const printCommitSummary = (branch, msg, { changes, insertions, deletions }) =>
 changed files: \x1b[33m${changes}\x1b[0m insertions: \x1b[32m${insertions}\x1b[0m deletions: \x1b[31m${deletions}\x1b[0m
 package version: ${pkg.version}`);
 
-const TEMP_FILE_PATH = path.resolve('.git', 'commit-safe');
+const TEMP_FILE_PATH = path.resolve('.git', 'commit-pkg');
 const onCommitError = (data) => {
 	print(data);
 	printOptions('An error occurred, what to do?', [
@@ -121,11 +121,7 @@ process.on('SIGINT', onTerminate);
 if (/\[(skip ci|ci skip)]/i.test(msg)) process.exit(0);
 
 const git = simpleGit({ baseDir: process.cwd() });
-
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
-
-if (JSON.parse(await git.show(['main:package.json'])).version !== pkg.version)
-	await commit();
 
 const updateVersion = (version) => {
 	pkg.version = version;
@@ -197,10 +193,14 @@ const printOptions = (msg, arr) => {
 	is.inputProcessing = true;
 };
 
-printOptions(
-	'Version hasn’t been changed and there is no [skip ci] in commit message, what to do?',
-	mainOptions
-);
+if (JSON.parse(await git.show(['main:package.json'])).version !== pkg.version) {
+	await commit();
+} else {
+	printOptions(
+		'Version hasn’t been changed and there is no [skip ci] in commit message, what to do?',
+		mainOptions
+	);
+}
 
 process.stdin.setRawMode(true);
 process.stdin.resume();
@@ -214,7 +214,6 @@ process.stdin.on(
 				process.stdout.moveCursor(0, options.length - options.currIndex);
 			print('Terminated by Ctrl+C');
 			await onTerminate();
-			process.exit(0);
 		}
 		if (!is.inputProcessing) return;
 		if (key === '\u000D' || key === ' ') {

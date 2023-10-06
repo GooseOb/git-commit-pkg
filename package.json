@@ -2,7 +2,7 @@
 	"name": "git-commit-pkg",
 	"author": "GooseOb",
 	"license": "MIT",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"private": false,
 	"type": "module",
 	"bin": {
@@ -19,7 +19,7 @@
 		"type": "git",
 		"url": "https://github.com/GooseOb/git-commit-pkg.git"
 	},
-	"description": "Канвэртацыя акадэмічнага правапісу ў клясычны",
+	"description": "versioning your package",
 	"dependencies": {
 		"simple-git": "^3.20.0"
 	},

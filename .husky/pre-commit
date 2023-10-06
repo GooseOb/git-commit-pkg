@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-[ -f '.git/commit-safe' ] || {
+[ -f '.git/commit-pkg' ] || {
   echo '[ERROR] Please, use the following command for committing:'
   echo '$ node bin <options>'
   exit 1
