@@ -3,10 +3,10 @@
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import simpleGit from 'simple-git';
+import { format } from 'util';
 
-const prefix = '\x1b[35m[git-commit-pkg]\x1b[0m';
-const print = (...msgs) => {
-	console.log(prefix, ...msgs);
+const print = (msg) => {
+	process.stdout.write('\x1b[35m[git-commit-pkg]\x1b[0m ' + msg + '\n');
 };
 
 if (process.argv.length < 3) {
@@ -61,7 +61,7 @@ package version: ${pkg.version}`);
 
 const TEMP_FILE_PATH = path.resolve('.git', 'commit-pkg');
 const onCommitError = (data) => {
-	print(data);
+	print(format(data));
 	printOptions('An error occurred, what to do?', [
 		['try again', commit],
 		['exit', () => unlink(TEMP_FILE_PATH).then(() => process.exit(1))],
@@ -99,7 +99,7 @@ const openPushMenu = () => {
 						process.exit(0);
 					})
 					.catch((err) => {
-						console.log(err);
+						console.error(err);
 						process.exit(1);
 					}),
 		],
