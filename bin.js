@@ -134,17 +134,29 @@ const updateVersion = (version) => {
 	});
 };
 
-const versionArr = pkg.version.split('.');
+const [, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
+	/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
+);
 const v = {
-	patch: `${versionArr[0]}.${versionArr[1]}.${+versionArr[2] + 1}`,
-	minor: `${versionArr[0]}.${+versionArr[1] + 1}.0`,
-	major: `${+versionArr[0] + 1}.0.0`,
+	major: `${+vMajor + 1}.0.0`,
+	minor: `${vMajor}.${+vMinor + 1}.0`,
+	patch: `${vMajor}.${vMinor}.${+vPatch + 1}`,
+	prerelease: `${vMajor}.${vMinor}.${vPatch}-${vPre}.${vPreV ? +vPreV + 1 : 1}`,
+	beta: `${vMajor}.${vMinor}.${vPatch}-beta.1`,
 };
+const isPre = !!vPre;
 
 const mainOptions = [
 	['patch release', () => updateVersion(v.patch), v.patch],
 	['minor release', () => updateVersion(v.minor), v.minor],
 	['major release', () => updateVersion(v.major), v.major],
+	isPre && ['prerelease', () => updateVersion(v.prerelease), v.prerelease],
+	isPre &&
+		vPre === 'alpha' && [
+			'prerelease - beta',
+			() => updateVersion(v.beta),
+			v.beta,
+		],
 	[
 		'skip ci',
 		() => {
@@ -159,7 +171,7 @@ const mainOptions = [
 			process.exit(0);
 		},
 	],
-];
+].filter(Boolean);
 
 const moveMenuCursor = (step) => {
 	process.stdout.clearLine();
