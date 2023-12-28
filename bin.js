@@ -112,8 +112,24 @@ const onTerminate = async () => {
 		await unlink('.git/index.lock');
 		await unlink(TEMP_FILE_PATH);
 		print('temporary files have been deleted');
+		printOptions('Undo the version change?', [
+			[
+				'yes',
+				() =>
+					updateVersion(originalV).then(() => {
+						process.exit(0);
+					}),
+			],
+			[
+				'no',
+				() => {
+					process.exit(0);
+				},
+			],
+		]);
+	} else {
+		process.exit(0);
 	}
-	process.exit(0);
 };
 
 process.on('SIGINT', onTerminate);
@@ -127,14 +143,14 @@ const updateVersion = (version) => {
 	pkg.version = version;
 	return writeFile(
 		'package.json',
-		JSON.stringify(pkg, null, '\t'),
+		JSON.stringify(pkg, null, '\t') + '\n',
 		'utf8'
 	).then(() => {
 		print('Version’s been updated to ' + pkg.version);
 	});
 };
 
-const [, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
+const [originalV, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
 	/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
 );
 const v = {
