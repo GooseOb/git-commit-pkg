@@ -109,7 +109,9 @@ const openPushMenu = () => {
 
 const onTerminate = async () => {
 	if (is.committing) {
-		await unlink('.git/index.lock');
+		try {
+			await unlink('.git/index.lock');
+		} catch {}
 		await unlink(TEMP_FILE_PATH);
 		print('temporary files have been deleted');
 		printOptions('Undo the version change?', [
