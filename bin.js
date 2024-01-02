@@ -166,11 +166,16 @@ const v = {
 };
 const isPre = !!vPre;
 
+const skipCiOption = [
+	'skip ci',
+	() => {
+		msg = '[skip ci] ' + msg;
+		print('Added [skip ci] to the commit message');
+	},
+];
+
 const mainOptions = [
 	isPre && ['release', () => updateVersion(v.release), v.release],
-	['patch release', () => updateVersion(v.patch), v.patch],
-	['minor release', () => updateVersion(v.minor), v.minor],
-	['major release', () => updateVersion(v.major), v.major],
 	isPre && ['prerelease', () => updateVersion(v.prerelease), v.prerelease],
 	isPre &&
 		vPre === 'alpha' && [
@@ -178,13 +183,11 @@ const mainOptions = [
 			() => updateVersion(v.beta),
 			v.beta,
 		],
-	[
-		'skip ci',
-		() => {
-			msg = '[skip ci] ' + msg;
-			print('Added [skip ci] to the commit message');
-		},
-	],
+	isPre && skipCiOption,
+	['patch release', () => updateVersion(v.patch), v.patch],
+	['minor release', () => updateVersion(v.minor), v.minor],
+	['major release', () => updateVersion(v.major), v.major],
+	isPre || skipCiOption,
 	[
 		'cancel',
 		() => {
