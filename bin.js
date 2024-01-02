@@ -118,7 +118,7 @@ const onTerminate = async () => {
 			[
 				'yes',
 				() =>
-					updateVersion(originalV).then(() => {
+					updateVersion(vOriginal).then(() => {
 						process.exit(0);
 					}),
 			],
@@ -152,19 +152,22 @@ const updateVersion = (version) => {
 	});
 };
 
-const [originalV, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
+const [vOriginal, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
 	/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
 );
+const vBase = `${vMajor}.${vMinor}.${vPatch}`;
 const v = {
 	major: `${+vMajor + 1}.0.0`,
 	minor: `${vMajor}.${+vMinor + 1}.0`,
 	patch: `${vMajor}.${vMinor}.${+vPatch + 1}`,
-	prerelease: `${vMajor}.${vMinor}.${vPatch}-${vPre}.${vPreV ? +vPreV + 1 : 1}`,
-	beta: `${vMajor}.${vMinor}.${vPatch}-beta.1`,
+	release: vBase,
+	prerelease: `${vBase}-${vPre}.${vPreV ? +vPreV + 1 : 1}`,
+	beta: `${vBase}-beta.1`,
 };
 const isPre = !!vPre;
 
 const mainOptions = [
+	isPre && ['release', () => updateVersion(v.release), v.release],
 	['patch release', () => updateVersion(v.patch), v.patch],
 	['minor release', () => updateVersion(v.minor), v.minor],
 	['major release', () => updateVersion(v.major), v.major],
