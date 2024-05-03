@@ -1,12 +1,22 @@
 #!/usr/bin/env node
 
+import { exec } from 'node:child_process';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import simpleGit from 'simple-git';
-import { format } from 'util';
+
+const git = (cmd) =>
+	new Promise((resolve, reject) => {
+		exec('git ' + cmd, (err, stdout, stderr) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve({ stdout, stderr });
+			}
+		});
+	});
 
 const print = (msg) => {
-	process.stdout.write('\x1b[35m[git-commit-pkg]\x1b[0m ' + msg + '\n');
+	process.stdout.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
 };
 
 if (process.argv.length < 3) {
@@ -14,39 +24,17 @@ if (process.argv.length < 3) {
 	process.exit(1);
 }
 
+const paramsArr = process.argv.slice(2);
+
+const msgIndex =
+	paramsArr.findIndex((item) => item === '-m' || item === '-am') + 1;
+
 let msg;
-let commitOptions = process.argv.slice(2);
-const removeFromCommitOptions = (from, to = from + 1) => {
-	commitOptions = commitOptions.slice(0, from).concat(commitOptions.slice(to));
-};
-
-const indexOfGpgTty = commitOptions.indexOf('--gpgtty');
-if (indexOfGpgTty !== -1) {
-	removeFromCommitOptions(indexOfGpgTty);
-	const { execSync } = await import('node:child_process');
-	process.env.GPG_TTY = execSync('tty', {
-		stdio: ['inherit', 'pipe', 'pipe'],
-	})
-		.toString()
-		.trim();
-}
-
-for (let i = 0; i < commitOptions.length; i++) {
-	const item = commitOptions[i];
-	if (item === '-m' || item === '-am') {
-		msg = commitOptions[i + 1];
-		let from = i;
-		if (item === '-am') {
-			commitOptions[i] = '-a';
-			from = i + 1;
-		}
-		removeFromCommitOptions(from, i + 2);
-		break;
-	}
-}
-
-if (!msg) {
-	print('Commit message is required');
+if (msgIndex) {
+	msg = paramsArr[msgIndex];
+	paramsArr[msgIndex] = `'${msg}'`;
+} else {
+	print('No commit message passed');
 	process.exit(1);
 }
 
@@ -54,34 +42,27 @@ const is = {
 	committing: false,
 	inputProcessing: true,
 };
-const printCommitSummary = (branch, msg, { changes, insertions, deletions }) =>
-	print(`${branch}: ${msg}
-changed files: \x1b[33m${changes}\x1b[0m insertions: \x1b[32m${insertions}\x1b[0m deletions: \x1b[31m${deletions}\x1b[0m
-package version: ${pkg.version}`);
 
 const TEMP_FILE_PATH = path.resolve('.git', 'commit-pkg');
-const onCommitError = (data) => {
-	print(format(data));
-	printOptions('An error occurred, what to do?', [
-		['try again', commit],
-		['exit', () => unlink(TEMP_FILE_PATH).then(() => process.exit(1))],
-	]);
-};
+
 const commit = async () => {
 	is.committing = true;
 	await writeFile(TEMP_FILE_PATH, '');
 	let commitResult;
 	try {
-		commitResult = await git.commit(msg, undefined, commitOptions, (data) => {
-			if (data) onCommitError(data);
-		});
+		commitResult = await git('commit ' + paramsArr.join(' '));
 	} catch (e) {
-		onCommitError(e);
+		print(e);
+		printOptions('An error occurred, what to do?', [
+			['try again', commit],
+			['exit', () => unlink(TEMP_FILE_PATH).then(() => process.exit(1))],
+		]);
 		return;
 	}
 	await unlink(TEMP_FILE_PATH);
 	is.committing = false;
-	printCommitSummary(commitResult.branch, msg, commitResult.summary);
+	if (commitResult.stderr) print(commitResult.stderr);
+	print(commitResult.stdout);
 	openPushMenu();
 };
 
@@ -91,11 +72,9 @@ const openPushMenu = () => {
 		[
 			'yes',
 			() =>
-				git
-					.push()
-					.then(({ repo, update: { head, hash } }) => {
-						print('Pushed to the repo ' + repo);
-						print(`${hash.from}..${hash.to} ${head.local} -> ${head.remote}`);
+				git('push')
+					.then((data) => {
+						print(data);
 						process.exit(0);
 					})
 					.catch((err) => {
@@ -109,9 +88,7 @@ const openPushMenu = () => {
 
 const onTerminate = async () => {
 	if (is.committing) {
-		try {
-			await unlink('.git/index.lock');
-		} catch {}
+		await unlink('.git/index.lock').catch(() => {});
 		await unlink(TEMP_FILE_PATH);
 		print('temporary files have been deleted');
 		printOptions('Undo the version change?', [
@@ -136,9 +113,8 @@ const onTerminate = async () => {
 
 process.on('SIGINT', onTerminate);
 
-if (/\[(skip ci|ci skip)]/i.test(msg)) process.exit(0);
+if (/\[(?:skip ci|ci skip)]/i.test(msg)) process.exit(0);
 
-const git = simpleGit({ baseDir: process.cwd() });
 const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 
 const updateVersion = (version) => {
@@ -169,7 +145,7 @@ const isPre = !!vPre;
 const skipCiOption = [
 	'skip ci',
 	() => {
-		msg = '[skip ci] ' + msg;
+		paramsArr[msgIndex] = `'[skip ci] ${msg}'`;
 		print('Added [skip ci] to the commit message');
 	},
 ];
@@ -229,7 +205,10 @@ const printOptions = (msg, arr) => {
 	is.inputProcessing = true;
 };
 
-if (JSON.parse(await git.show(['main:package.json'])).version !== pkg.version) {
+if (
+	JSON.parse((await git('show main:package.json')).stdout).version !==
+	pkg.version
+) {
 	await commit();
 } else {
 	printOptions(
