@@ -18,6 +18,9 @@ const git = (cmd) =>
 const print = (msg) => {
 	process.stdout.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
 };
+const printErr = (msg) => {
+	process.stderr.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
+};
 
 if (process.argv.length < 3) {
 	print('No arguments passed');
@@ -52,7 +55,7 @@ const commit = async () => {
 	try {
 		commitResult = await git('commit ' + paramsArr.join(' '));
 	} catch (e) {
-		print(e);
+		printErr(e);
 		printOptions('An error occurred, what to do?', [
 			['try again', commit],
 			['exit', () => unlink(TEMP_FILE_PATH).then(() => process.exit(1))],
@@ -73,12 +76,13 @@ const openPushMenu = () => {
 			'yes',
 			() =>
 				git('push')
-					.then((data) => {
-						print(data.stdout);
+					.then(({ stdout, stderr }) => {
+						if (stdout) print(stdout);
+						if (stderr) printErr(stderr);
 						process.exit(0);
 					})
 					.catch((err) => {
-						console.error(err);
+						printErr(err);
 						process.exit(1);
 					}),
 		],
