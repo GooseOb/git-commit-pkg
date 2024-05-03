@@ -74,7 +74,7 @@ const openPushMenu = () => {
 			() =>
 				git('push')
 					.then((data) => {
-						print(data);
+						print(data.stdout);
 						process.exit(0);
 					})
 					.catch((err) => {
