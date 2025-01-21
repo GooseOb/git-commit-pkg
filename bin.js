@@ -132,7 +132,7 @@ const onTerminate = async () => {
 	if (is.committing) {
 		await unlink('.git/index.lock').catch(() => {});
 		await unlink(TEMP_FILE_PATH);
-		print('temporary files have been deleted');
+		print('Deleted temporary files');
 		printOptions('Undo the version change?', [
 			[
 				'yes',
@@ -160,61 +160,61 @@ if (/\[(?:skip ci|ci skip)]/i.test(msg)) {
 } else {
 	const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 
-	const updateVersion = (version) => {
-		pkg.version = version;
-		return writeFile(
-			'package.json',
-			JSON.stringify(pkg, null, '\t') + '\n',
-			'utf8'
-		).then(() => {
-			print('Version’s been updated to ' + pkg.version);
-		});
-	};
+	const versionUpdateOption = (label, version) => [
+		label,
+		() => {
+			pkg.version = version;
+			return writeFile(
+				'package.json',
+				JSON.stringify(pkg, null, '\t') + '\n',
+				'utf8'
+			).then(() => {
+				print('Updated the version to ' + pkg.version);
+			});
+		},
+		version,
+	];
 
 	const [, vMajor, vMinor, vPatch, vPreType, vPre] = pkg.version.match(
 		/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
 	);
 	const vBase = `${vMajor}.${vMinor}.${vPatch}`;
-	const v = {
-		major: `${+vMajor + 1}.0.0`,
-		minor: `${vMajor}.${+vMinor + 1}.0`,
-		patch: `${vMajor}.${vMinor}.${+vPatch + 1}`,
-		release: vBase,
-		prerelease: `${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`,
-		beta: `${vBase}-beta.1`,
-	};
-	const isPre = !!vPreType;
 
-	const skipCiOption = [
-		'skip ci',
-		() => {
-			paramsArr[msgIndex] = `'[skip ci] ${msg}'`;
-			print('Added [skip ci] to the commit message');
-		},
-	];
+	const mainOptions = vPreType
+		? [
+				versionUpdateOption(
+					'prerelease',
+					`${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`
+				),
+				versionUpdateOption('release', vBase),
+				vPreType === 'alpha' &&
+					versionUpdateOption('prerelease - beta', `${vBase}-beta.1`),
+			].filter(Boolean)
+		: [
+				versionUpdateOption(
+					'patch release',
+					`${vMajor}.${vMinor}.${+vPatch + 1}`
+				),
+				versionUpdateOption('minor release', `${vMajor}.${+vMinor + 1}.0`),
+				versionUpdateOption('major release', `${+vMajor + 1}.0.0`),
+			];
 
-	const mainOptions = [
-		isPre && ['release', () => updateVersion(v.release), v.release],
-		isPre && ['prerelease', () => updateVersion(v.prerelease), v.prerelease],
-		isPre &&
-			vPreType === 'alpha' && [
-				'prerelease - beta',
-				() => updateVersion(v.beta),
-				v.beta,
-			],
-		isPre && skipCiOption,
-		['patch release', () => updateVersion(v.patch), v.patch],
-		['minor release', () => updateVersion(v.minor), v.minor],
-		['major release', () => updateVersion(v.major), v.major],
-		isPre || skipCiOption,
+	mainOptions.push(
+		[
+			'skip ci',
+			() => {
+				paramsArr[msgIndex] = `'[skip ci] ${msg}'`;
+				print('Added [skip ci] to the commit message');
+			},
+		],
 		[
 			'cancel',
 			() => {
 				print('Canceled');
 				process.exit(0);
 			},
-		],
-	].filter(Boolean);
+		]
+	);
 
 	if (
 		JSON.parse((await git('show main:package.json')).stdout).version !==

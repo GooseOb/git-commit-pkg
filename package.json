@@ -2,7 +2,7 @@
 	"name": "git-commit-pkg",
 	"author": "GooseOb",
 	"license": "MIT",
-	"version": "1.5.5",
+	"version": "1.6.0",
 	"private": false,
 	"type": "module",
 	"bin": {
