@@ -160,7 +160,7 @@ if (/\[(?:skip ci|ci skip)]/i.test(msg)) {
 } else {
 	const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 
-	const versionUpdateOption = (label, version) => [
+	const vOption = (label, version) => [
 		label,
 		() => {
 			pkg.version = version;
@@ -182,21 +182,14 @@ if (/\[(?:skip ci|ci skip)]/i.test(msg)) {
 
 	const mainOptions = vPreType
 		? [
-				versionUpdateOption(
-					'prerelease',
-					`${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`
-				),
-				versionUpdateOption('release', vBase),
-				vPreType === 'alpha' &&
-					versionUpdateOption('prerelease - beta', `${vBase}-beta.1`),
+				vOption('prerelease', `${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`),
+				vOption('release', vBase),
+				vPreType === 'alpha' && vOption('prerelease - beta', `${vBase}-beta.1`),
 			].filter(Boolean)
 		: [
-				versionUpdateOption(
-					'patch release',
-					`${vMajor}.${vMinor}.${+vPatch + 1}`
-				),
-				versionUpdateOption('minor release', `${vMajor}.${+vMinor + 1}.0`),
-				versionUpdateOption('major release', `${+vMajor + 1}.0.0`),
+				vOption('patch release', `${vMajor}.${vMinor}.${+vPatch + 1}`),
+				vOption('minor release', `${vMajor}.${+vMinor + 1}.0`),
+				vOption('major release', `${+vMajor + 1}.0.0`),
 			];
 
 	mainOptions.push(
