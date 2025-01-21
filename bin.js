@@ -9,7 +9,10 @@ const print = (msg, writer = process.stdout) => {
 };
 
 if (process.argv.includes('-v') || process.argv.includes('--version')) {
-	print(JSON.parse(await readFile('./package.json')).version);
+	print(
+		JSON.parse(await readFile(path.join(import.meta.dirname, 'package.json')))
+			.version
+	);
 	process.exit(0);
 }
 
