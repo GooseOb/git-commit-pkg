@@ -222,7 +222,7 @@ if (
 	await commit();
 } else {
 	printOptions(
-		'Version hasn’t been changed and there is no [skip ci] in commit message',
+		'Version hasn’t been changed and there is no [skip ci] in the commit message',
 		mainOptions
 	);
 }
