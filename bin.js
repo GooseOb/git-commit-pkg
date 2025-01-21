@@ -4,6 +4,15 @@ import { exec } from 'node:child_process';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
+const print = (msg, writer = process.stdout) => {
+	writer.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
+};
+
+if (process.argv.includes('-v') || process.argv.includes('--version')) {
+	print(JSON.parse(await readFile('./package.json')).version);
+	process.exit(0);
+}
+
 const git = (cmd) =>
 	new Promise((resolve, reject) => {
 		exec('git ' + cmd, (err, stdout, stderr) => {
@@ -14,10 +23,6 @@ const git = (cmd) =>
 			}
 		});
 	});
-
-const print = (msg, writer = process.stdout) => {
-	writer.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
-};
 
 if (process.argv.length < 3) {
 	print('No arguments passed');
