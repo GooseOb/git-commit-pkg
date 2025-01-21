@@ -74,6 +74,39 @@ const commit = async () => {
 	openPushMenu();
 };
 
+const moveMenuCursor = (step) => {
+	process.stdout.clearLine();
+	process.stdout.write('  ' + options.names[options.currIndex]);
+	options.currIndex += step;
+	if (options.currIndex === -1) {
+		options.currIndex = options.length - 1;
+		step += options.length;
+	} else if (options.currIndex === options.length) {
+		options.currIndex = 0;
+		step += -options.length;
+	}
+	process.stdout.moveCursor(0, step);
+	const option = options[options.currIndex];
+	process.stdout.cursorTo(0);
+	process.stdout.write(
+		`> \x1b[34;4m${
+			option[0] + (option[2] ? '\x1b[0;90m ' + option[2] : '')
+		}\x1b[0m`
+	);
+	process.stdout.cursorTo(0);
+};
+
+let options;
+const printOptions = (msg, arr) => {
+	options = arr;
+	options.names = arr.map((item) => item[0]);
+	options.currIndex = 0;
+	print(msg + '\n' + options.names.join('\n  '));
+	process.stdout.moveCursor(0, -arr.length);
+	moveMenuCursor(0);
+	is.inputProcessing = true;
+};
+
 const openPushMenu = () => {
 	printOptions('Make a push?', [
 		['no', () => process.exit(0)],
@@ -93,7 +126,6 @@ const openPushMenu = () => {
 				),
 		],
 	]);
-	is.inputProcessing = true;
 };
 
 const onTerminate = async () => {
@@ -123,108 +155,78 @@ const onTerminate = async () => {
 
 process.on('SIGINT', onTerminate);
 
-if (/\[(?:skip ci|ci skip)]/i.test(msg)) process.exit(0);
-
-const pkg = JSON.parse(await readFile('package.json', 'utf8'));
-
-const updateVersion = (version) => {
-	pkg.version = version;
-	return writeFile(
-		'package.json',
-		JSON.stringify(pkg, null, '\t') + '\n',
-		'utf8'
-	).then(() => {
-		print('Version’s been updated to ' + pkg.version);
-	});
-};
-
-const [vOriginal, vMajor, vMinor, vPatch, vPre, vPreV] = pkg.version.match(
-	/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
-);
-const vBase = `${vMajor}.${vMinor}.${vPatch}`;
-const v = {
-	major: `${+vMajor + 1}.0.0`,
-	minor: `${vMajor}.${+vMinor + 1}.0`,
-	patch: `${vMajor}.${vMinor}.${+vPatch + 1}`,
-	release: vBase,
-	prerelease: `${vBase}-${vPre}.${vPreV ? +vPreV + 1 : 1}`,
-	beta: `${vBase}-beta.1`,
-};
-const isPre = !!vPre;
-
-const skipCiOption = [
-	'skip ci',
-	() => {
-		paramsArr[msgIndex] = `'[skip ci] ${msg}'`;
-		print('Added [skip ci] to the commit message');
-	},
-];
-
-const mainOptions = [
-	isPre && ['release', () => updateVersion(v.release), v.release],
-	isPre && ['prerelease', () => updateVersion(v.prerelease), v.prerelease],
-	isPre &&
-		vPre === 'alpha' && [
-			'prerelease - beta',
-			() => updateVersion(v.beta),
-			v.beta,
-		],
-	isPre && skipCiOption,
-	['patch release', () => updateVersion(v.patch), v.patch],
-	['minor release', () => updateVersion(v.minor), v.minor],
-	['major release', () => updateVersion(v.major), v.major],
-	isPre || skipCiOption,
-	[
-		'cancel',
-		() => {
-			print('Canceled');
-			process.exit(0);
-		},
-	],
-].filter(Boolean);
-
-const moveMenuCursor = (step) => {
-	process.stdout.clearLine();
-	process.stdout.write('  ' + options.names[options.currIndex]);
-	options.currIndex += step;
-	if (options.currIndex === -1) {
-		options.currIndex = options.length - 1;
-		step += options.length;
-	} else if (options.currIndex === options.length) {
-		options.currIndex = 0;
-		step += -options.length;
-	}
-	process.stdout.moveCursor(0, step);
-	const option = options[options.currIndex];
-	process.stdout.cursorTo(0);
-	process.stdout.write(
-		`> \x1b[34;4m${
-			option[0] + (option[2] ? '\x1b[0;90m ' + option[2] : '')
-		}\x1b[0m`
-	);
-	process.stdout.cursorTo(0);
-};
-let options;
-const printOptions = (msg, arr) => {
-	options = arr;
-	options.names = arr.map((item) => item[0]);
-	options.currIndex = 0;
-	print(msg + '\n' + options.names.join('\n  '));
-	process.stdout.moveCursor(0, -arr.length);
-	moveMenuCursor(0);
-	is.inputProcessing = true;
-};
-
-if (
-	JSON.parse((await git('show main:package.json')).stdout).version !==
-	pkg.version
-) {
+if (/\[(?:skip ci|ci skip)]/i.test(msg)) {
 	await commit();
 } else {
-	printOptions(
-		'Version hasn’t been changed and there is no [skip ci] in the commit message',
-		mainOptions
+	const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+
+	const updateVersion = (version) => {
+		pkg.version = version;
+		return writeFile(
+			'package.json',
+			JSON.stringify(pkg, null, '\t') + '\n',
+			'utf8'
+		).then(() => {
+			print('Version’s been updated to ' + pkg.version);
+		});
+	};
+
+	const [, vMajor, vMinor, vPatch, vPreType, vPre] = pkg.version.match(
+		/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
 	);
+	const vBase = `${vMajor}.${vMinor}.${vPatch}`;
+	const v = {
+		major: `${+vMajor + 1}.0.0`,
+		minor: `${vMajor}.${+vMinor + 1}.0`,
+		patch: `${vMajor}.${vMinor}.${+vPatch + 1}`,
+		release: vBase,
+		prerelease: `${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`,
+		beta: `${vBase}-beta.1`,
+	};
+	const isPre = !!vPreType;
+
+	const skipCiOption = [
+		'skip ci',
+		() => {
+			paramsArr[msgIndex] = `'[skip ci] ${msg}'`;
+			print('Added [skip ci] to the commit message');
+		},
+	];
+
+	const mainOptions = [
+		isPre && ['release', () => updateVersion(v.release), v.release],
+		isPre && ['prerelease', () => updateVersion(v.prerelease), v.prerelease],
+		isPre &&
+			vPreType === 'alpha' && [
+				'prerelease - beta',
+				() => updateVersion(v.beta),
+				v.beta,
+			],
+		isPre && skipCiOption,
+		['patch release', () => updateVersion(v.patch), v.patch],
+		['minor release', () => updateVersion(v.minor), v.minor],
+		['major release', () => updateVersion(v.major), v.major],
+		isPre || skipCiOption,
+		[
+			'cancel',
+			() => {
+				print('Canceled');
+				process.exit(0);
+			},
+		],
+	].filter(Boolean);
+
+	if (
+		JSON.parse((await git('show main:package.json')).stdout).version !==
+		pkg.version
+	) {
+		await commit();
+	} else {
+		printOptions(
+			'Version hasn’t been changed and there is no [skip ci] in the commit message',
+			mainOptions
+		);
+	}
 }
 
 process.stdin.setRawMode(true);
