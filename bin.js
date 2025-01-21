@@ -15,11 +15,8 @@ const git = (cmd) =>
 		});
 	});
 
-const print = (msg) => {
-	process.stdout.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
-};
-const printErr = (msg) => {
-	process.stderr.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
+const print = (msg, writer = process.stdout) => {
+	writer.write(`\x1b[35m[git-commit-pkg]\x1b[0m ${msg}\n`);
 };
 
 if (process.argv.length < 3) {
@@ -55,8 +52,8 @@ const commit = async () => {
 	try {
 		commitResult = await git('commit ' + paramsArr.join(' '));
 	} catch (e) {
-		printErr(e);
-		printOptions('An error occurred, what to do?', [
+		print(e, process.stderr);
+		printOptions('An error occurred', [
 			['try again', commit],
 			['exit', () => unlink(TEMP_FILE_PATH).then(() => process.exit(1))],
 		]);
@@ -75,16 +72,17 @@ const openPushMenu = () => {
 		[
 			'yes',
 			() =>
-				git('push')
-					.then(({ stdout, stderr }) => {
+				git('push').then(
+					({ stdout, stderr }) => {
 						if (stdout) print(stdout);
-						if (stderr) printErr(stderr);
+						if (stderr) print(stderr, process.stderr);
 						process.exit(0);
-					})
-					.catch((err) => {
-						printErr(err);
+					},
+					(err) => {
+						print(err, process.stderr);
 						process.exit(1);
-					}),
+					}
+				),
 		],
 	]);
 	is.inputProcessing = true;
@@ -216,7 +214,7 @@ if (
 	await commit();
 } else {
 	printOptions(
-		'Version hasn’t been changed and there is no [skip ci] in commit message, what to do?',
+		'Version hasn’t been changed and there is no [skip ci] in commit message',
 		mainOptions
 	);
 }
