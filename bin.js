@@ -178,19 +178,24 @@ if (/\[(?:skip ci|ci skip)]/i.test(msg)) {
 	const [, vMajor, vMinor, vPatch, vPreType, vPre] = pkg.version.match(
 		/(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?/
 	);
-	const vBase = `${vMajor}.${vMinor}.${vPatch}`;
 
-	const mainOptions = vPreType
-		? [
-				vOption('prerelease', `${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`),
-				vOption('release', vBase),
-				vPreType === 'alpha' && vOption('prerelease - beta', `${vBase}-beta.1`),
-			].filter(Boolean)
-		: [
-				vOption('patch release', `${vMajor}.${vMinor}.${+vPatch + 1}`),
-				vOption('minor release', `${vMajor}.${+vMinor + 1}.0`),
-				vOption('major release', `${+vMajor + 1}.0.0`),
-			];
+	const mainOptions = [vOption('no change', pkg.version)];
+	if (vPreType) {
+		const vBase = `${vMajor}.${vMinor}.${vPatch}`;
+		mainOptions.push(
+			vOption('prerelease', `${vBase}-${vPreType}.${vPre ? +vPre + 1 : 1}`),
+			vOption('release', vBase)
+		);
+		if (vPreType === 'alpha') {
+			mainOptions.push(vOption('prerelease - beta', `${vBase}-beta.1`));
+		}
+	} else {
+		mainOptions.push(
+			vOption('patch release', `${vMajor}.${vMinor}.${+vPatch + 1}`),
+			vOption('minor release', `${vMajor}.${+vMinor + 1}.0`),
+			vOption('major release', `${+vMajor + 1}.0.0`)
+		);
+	}
 
 	mainOptions.push(
 		[
